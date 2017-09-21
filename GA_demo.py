@@ -20,7 +20,7 @@ def RatioSelect(Pf):
   m=0
   r=np.random.random()
   for i in range(np.size(Pf)):
-    m=m+r
+    m=m+Pf[i]
     if r<m:
       return i
 
@@ -103,14 +103,70 @@ def DNA2Data(DNA):
 Mn=20 # 20个DNA
 Bn=9 # DNA有9个粒
 G0=[] # 族群
-Pf=np.zeros(Mn) # 生存率
+V = np.zeros(Mn) # 计算值
+Pf = np.zeros(Mn) # 归一化生存率
 # 产生一个族群
 for i in range(Mn):
   G0.append(InitDNA(Bn))
-  x = DNA2Data(G0[i])
-  Pf[i] = x*np.sin(10.0*np.pi*x)+2.0
+  x = DNA2Data(G0[i]) 
+  V[i] = x*np.sin(10.0*np.pi*x)+2.0 # 
 
-Pf = np.divide(Pf, sum(Pf))
-Pf= np.sort(Pf) # 归一化并排序
+Pf = np.divide(V, sum(V))
+sortnum = np.argsort(Pf) # 排序对应的序号
+Pf = np.sort(Pf) # 生存率排序
 
-# 
+# 开始进行遗传变异
+Pc = 0.5 # 交叉概率
+Pm = 0.05 # 变异概率
+T = 500 # 变异代数
+E = 0.001 # 停止条件，同代内的最大最小值差
+
+for j in range(T):
+  G=[] # 新族群  
+  for i in range(Mn/2):
+    i0 = RatioSelect(Pf) # 选择DNA序号
+    i1 = RatioSelect(Pf)
+  
+    r = np.random.random() # 交叉
+    if r<Pc: 
+      DNA0, DNA1 = CrossTrans(G0[sortnum[i0]], G0[sortnum[i1]], Bn)
+    else:
+      DNA0 = G0[sortnum[i0]]
+      DNA1 = G0[sortnum[i1]]
+    
+    r = np.random.random() # 变异1
+    if r<Pm:
+      DNA0 = GeneticMutation(DNA0, Bn)
+    else:
+      DNA0 = DNA0
+    
+    r = np.random.random() # 变异2
+    if r<Pm:
+      DNA1 = GeneticMutation(DNA1, Bn)
+    else:
+      DNA1 = DNA1
+    
+    if i==0:
+      DNA0 = G0[sortnum[-1]] # 保留最好的结果
+    
+    G.append(DNA0) 
+    x = DNA2Data(DNA0) # 计算生存率
+    V[i*2] = x*np.sin(10.0*np.pi*x)+2.0
+    G.append(DNA1)
+    x = DNA2Data(DNA1)
+    V[i*2+1] = x*np.sin(10.0*np.pi*x)+2.0
+    
+  G0 = G # 新族群替代老族群
+  Pf = np.divide(V, sum(V))
+  sortnum = np.argsort(Pf)
+  Pf = np.sort(Pf) # 归一化并排序
+  diffV = np.max(V) - np.min(V)
+  print '差值为%f' %(diffV)
+  if (diffV)<E: 
+    if j<150:
+      Pm = 0.1 # 提高变异率
+    else:
+      break # 达到结束条件
+  
+x = DNA2Data(G0[sortnum[-1]]) 
+print '遗传代数为%d, 最大值为%f,最小值为%f,此时的x为%f' %(j, np.max(V), np.min(V), x)
