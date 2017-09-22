@@ -9,6 +9,7 @@ Created on Thu Sep 21 18:40:18 2017
 """
 
 import numpy as np
+import matplotlib.pyplot as plt
 
 """############################################################################
 purpse：轮盘赌方法随机选择1个DNA
@@ -53,9 +54,9 @@ output：
 def Mutation(M, Mmin, Mmax, ratiok):
   r = np.random.randint(10)
   if r%2==0:
-    M = M+ratiok*(Mmax-M)*r/10
+    M = M+ratiok*(Mmax-M)
   else:
-    M = M-ratiok*(M-Mmin)*r/10
+    M = M-ratiok*(M-Mmin)
   return M
 
 """############################################################################
@@ -64,16 +65,18 @@ Bn：（2-（-1））／0.01=300<2^9
 """
 Mmax = 2.0
 Mmin = -1.0
-Mn = 20 # 种群个体数
+Mn = 50 # 种群个体数
 T = 500 # 代际数
-Pc = 0.8
-Pm = 0.1
-alpha = 0.3
-ratiok = 0.1
+Pc = 0.5 # 交叉概率
+Pm = 0.01 # 变异概率
+E = Mn # 结束条件
+cntE = 0
 
 # 初始化
-G = np.random.random(Mn)*2-1 # 生成一个初始族群
+G = np.random.random(Mn)*3.0-1.0 # 生成一个初始族群
 func = G*np.sin(10*np.pi*G)+2 # 计算生存率：值
+preV = np.max(func)
+#func = func-np.min(func) # 去除非零值
 pf = func/sum(func) # 归一化生存率
 pfsort = np.argsort(pf) # 生存率排序的序号
 pf = np.sort(pf)
@@ -85,12 +88,14 @@ for tnum in range(T):
     n1 = RatioSelect(pf, n0) # 选择DNA
     r = np.random.random()
     if r<Pc: # 交叉
+      alpha = np.random.random() # 随机交叉点
       Gs[inum*2],Gs[inum*2+1]=CrossOver(G[pfsort[n0]], G[pfsort[n1]], alpha)
     else:
       Gs[inum*2]=G[pfsort[n0]]
       Gs[inum*2+1]=G[pfsort[n1]]
   
     r = np.random.random()
+    ratiok = np.random.random() # 随机变异点
     if r<Pm: #变异
       Gs[inum*2] = Mutation(Gs[inum*2], Mmin, Mmax, ratiok)
 
@@ -98,11 +103,27 @@ for tnum in range(T):
     if r<Pm: #变异
       Gs[inum*2+1] = Mutation(Gs[inum*2+1], Mmin, Mmax, ratiok)
 
+    r = np.random.randint(Mn) # 随机取一个位置生成一个随机值，做为外来DNA
+    Gs[r] = np.random.random()*3.0-1.0
+    
+    r = np.random.randint(Mn) # 随机取一个位置保留最优解
+    Gs[r] = G[pfsort[-1]]
+    
   G = Gs    
   func = G*np.sin(10*np.pi*G)+2 # 计算生存率：值
+  if preV==np.max(func):
+    cntE += 1
+  else:
+    cntE = 0
+  preV = np.max(func)
   pf = func/sum(func) # 归一化生存率
   pfsort = np.argsort(pf) # 生存率排序的序号
   pf = np.sort(pf)
+  print '代数=%d, 此时x=%f, 最大值=%f' %(tnum, G[pfsort[-1]], func[pfsort[-1]])
+  if cntE == E:
+    if tnum > 50:
+      tnum = T
+      break
           
-print 'maxfunc=%f' %(np.max(func))
+print 'maxfunc=%f, x=%f' %(np.max(func), G[pfsort[-1]])
   
